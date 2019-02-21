@@ -5,7 +5,7 @@ module.exports.users = [
     { email: 'user3@dummy.com', dni: 30123325, username: "cliente1", password: 'garrahan', firstname: "Pedro", lastname: "Fernandez", isInternal: false },
     { email: 'user4@dummy.com', dni: 30123326, username: "cliente2", password: 'garrahan', firstname: "Juan", lastname: "Fernandez", isInternal: false },
     { email: 'user5@dummy.com', dni: 30123327, username: "cliente3", password: 'garrahan', firstname: "Juan Pedro", lastname: "Fernandez2", isInternal: false },
-    
+
     {isInternal:"true",password:"garrahan",firstname:"Alejandra",initials:"AZ",email:"ALEJANALANIZ@GMAIL.COM",dni:"18545525",username:"AALANIZ",lastname:"Alaniz"},
     {isInternal:"true",password:"garrahan",firstname:"Dalma",initials:"AD",email:"ALARCONDALMA7@GMAIL.COM",dni:"34800392",username:"DALARCON",lastname:"Alarcón"},
     {isInternal:"true",password:"garrahan",firstname:"Ana Maria",initials:"AR",email:"ANARODRIGUEZ2016@GMAIL.COM",dni:"32031487",username:"ARODRIGUEZ",lastname:"Rodriguez"},
@@ -129,7 +129,7 @@ module.exports.orderPriorities = [
 ]
 
 module.exports.institutionTypes = [
-    { name: "PÚBLICA", description: "Instituciones públicas de salud" },
+    { name: "PÚBLICA", description: "Instituciones pÃºblicas de salud" },
     { name: "PRIVADA", description: "Instituciones privadas de salud" },
     { name: "UBA", description: "Instituciones de salud dependientes de la Universidad de Buenos Aires" },
     { name: "Ins. Prov. Bs As", description: "Instituciones en Provincia de Buenos Aires" }
@@ -142,7 +142,7 @@ module.exports.orderStatuses = [
     },
     {
         name: "RECHAZADA",
-        description: "Órdenes que fueron rechazadas por algún operador y deben ser revisadas/conciliadas por el cliente."
+        description: "Órdenes que fueron rechazadas por algÃºn operador y deben ser revisadas/conciliadas por el cliente."
     },
     {
         name: "PENDIENTE",
