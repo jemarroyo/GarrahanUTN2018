@@ -29,7 +29,7 @@ public class OrderInfoSpecification implements Specification<OrderInfo> {
               root.<String> get(criteria.getKey()), criteria.getValue().toString());
         } 
         else if (criteria.getOperation().equalsIgnoreCase(":")) {
-            if (root.get(criteria.getKey()).getJavaType() == String.class) {
+            if (root.get(criteria.getKey()).getJavaType() == String.class && !criteria.getKey().equals("statusId")) {
                 return builder.like(
                   root.<String>get(criteria.getKey()), "%" + criteria.getValue() + "%");
             } else {

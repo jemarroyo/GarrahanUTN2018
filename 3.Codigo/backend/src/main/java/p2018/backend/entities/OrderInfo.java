@@ -15,6 +15,8 @@ import javax.persistence.OneToOne;
 import javax.persistence.PrePersist;
 import javax.persistence.Version;
 
+import com.fasterxml.jackson.annotation.JsonManagedReference;
+
 
 @Entity
 public class OrderInfo extends AuditableEntity implements Serializable {
@@ -36,6 +38,12 @@ public class OrderInfo extends AuditableEntity implements Serializable {
 	
 	@Column(name = "ownerId", insertable = false, updatable = false)
 	private Long ownerId;
+	
+	@Column(name = "priorityId", insertable = false, updatable = false)
+	private Long priorityId;
+	
+	@Column(name = "statusId", insertable = false, updatable = false)
+	private String statusId;
 	
 	@OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "statusId")
@@ -68,6 +76,10 @@ public class OrderInfo extends AuditableEntity implements Serializable {
 	
 	@OneToMany(mappedBy = "orderInfo")
 	private Set<UnitTypeMappings> unitTypeMappings;
+	
+	@OneToMany(mappedBy = "orderInfo")
+	@JsonManagedReference
+	private Set<GeneralComment> comments;
 
 	public String getCode() {
 		return code;
@@ -104,6 +116,14 @@ public class OrderInfo extends AuditableEntity implements Serializable {
 	public Priority getPriority() {
 		return priority;
 	}
+	
+	public Long getPriorityId() {
+		return priorityId;
+	}
+
+	public void setPriorityId(Long priorityId) {
+		this.priorityId = priorityId;
+	}
 
 	public void setPriority(Priority priority) {
 		this.priority = priority;
@@ -127,6 +147,14 @@ public class OrderInfo extends AuditableEntity implements Serializable {
 
 	public User getOwner() {
 		return owner;
+	}
+
+	public String getStatusId() {
+		return statusId;
+	}
+
+	public void setStatusId(String statusId) {
+		this.statusId = statusId;
 	}
 
 	public void setOwner(User owner) {
@@ -173,7 +201,6 @@ public class OrderInfo extends AuditableEntity implements Serializable {
 		this.units = units;
 	}
 	
-	
 	public Set<ConciliationComment> getConciliationComments() {
 		return conciliationComments;
 	}
@@ -181,7 +208,15 @@ public class OrderInfo extends AuditableEntity implements Serializable {
 	public void setConciliationComments(Set<ConciliationComment> conciliationComments) {
 		this.conciliationComments = conciliationComments;
 	}
-	
+
+	public Set<GeneralComment> getComments() {
+		return comments;
+	}
+
+	public void setComments(Set<GeneralComment> comments) {
+		this.comments = comments;
+	}
+
 	public Set<Irradiation> getIrradiations() {
 		return irradiations;
 	}

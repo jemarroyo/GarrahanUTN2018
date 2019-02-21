@@ -26,17 +26,17 @@ public class ConcilliationCommentController {
 	@Autowired
 	private ConcilliationCommentRepository concilliationCommentRepository;
 	
-	@GetMapping("/ConcilliationComments")
+	@GetMapping("/comments")
 	public List<ConciliationComment> getComments(){
 		return concilliationCommentRepository.findAll();
 	}
 	
-	@GetMapping("/ConcilliationComments/{id}")
+	@GetMapping("/comments/{id}")
 	public ConciliationComment getComment(@PathVariable Long id){
 		return concilliationCommentRepository.getOne(id);
 	}
 	
-	@DeleteMapping("/ConcilliationComments/{id}")
+	@DeleteMapping("/comments/{id}")
 	public boolean deleteComment(@PathVariable Long id){
 		concilliationCommentRepository.deleteById(id);
 		return true;
@@ -49,7 +49,7 @@ public class ConcilliationCommentController {
 		return concilliationCommentRepository.save(comment);
 	}
 	
-	@PutMapping("/ConcilliationComments")
+	@PutMapping("/comments")
 	public ConciliationComment updateComment(@RequestBody ConciliationComment comment){
 		return concilliationCommentRepository.save(comment);
 	}

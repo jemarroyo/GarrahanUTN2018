@@ -20,6 +20,7 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.JsonNodeType;
 
 import p2018.backend.exceptions.GarrahanAPIException;
 import p2018.backend.utils.OrderInfoSpecification;
@@ -36,6 +37,8 @@ public class ParseFilterRequest {
 	
 	private String filter_4 = "{\"where\":{\"and\":[{\"or\":[{\"creationDate\":\"2018-12-01T03:00:00.000Z\"},{\"creationDate\":{\"gt\":\"2018-12-01T03:00:00.000Z\"}}]},{\"or\":[{\"creationDate\":\"2019-02-11T03:00:00.000Z\"},{\"creationDate\":{\"lt\":\"2019-02-11T03:00:00.000Z\"}}]}]},\"skip\":0,\"limit\":20,\"order\":[\"lastModified DESC\"],\"include\":[{\"units\":{\"type\":true}},{\"status\":true},{\"priority\":true},{\"owner\":true},{\"institution\":true}]}";
 	
+	private String filter_5 = "{\"where\":{\"institutionId\":5},\"skip\":0,\"limit\":20,\"order\":[\"lastModified DESC\"],\"include\":[{\"units\":{\"type\":true}},{\"status\":true},{\"priority\":true},{\"owner\":true},{\"institution\":true}]}";
+	
 	@Test
 	public void ParseFilter(){
 		
@@ -43,7 +46,7 @@ public class ParseFilterRequest {
 		Specification value = null;
 		
 		try {
-			JsonNode actualTree = mapper.readTree(filter_4);
+			JsonNode actualTree = mapper.readTree(filter_5);
 			//JsonNode whereTree = actualTree.get("where");
 			Iterator<JsonNode> i = this.fetchFilterParameter(actualTree.toString());
 			Integer checkPosition = 0;
@@ -100,6 +103,16 @@ public class ParseFilterRequest {
 					checkPosition++;
 				}
 				
+				if(jsonNode.getNodeType().equals(JsonNodeType.NUMBER)) {
+					Long institutionId = new Long(jsonNode.asLong());
+					OrderInfoSpecification spec = new OrderInfoSpecification(new SearchCriteria("institutionId", ":", institutionId));
+					if(checkPosition == 0) {
+						value = Specification.where(spec);
+					}else{
+						value = value.and(spec);
+					}
+					checkPosition++;
+				}
 			}
 			
 			assertTrue(!actualTree.equals(null));

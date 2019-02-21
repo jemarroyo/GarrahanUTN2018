@@ -1,5 +1,6 @@
 package p2018.backend.utils;
 
+
 public class Constants {
 	
 	// Spring Security

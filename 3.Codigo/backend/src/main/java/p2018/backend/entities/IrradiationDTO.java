@@ -43,6 +43,7 @@ public class IrradiationDTO implements Serializable {
 	
 	@OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "irradiatorId", insertable = false, updatable = false)
+	@JsonIgnore
 	private User irradiator;
 	
 	@ManyToOne
@@ -93,14 +94,6 @@ public class IrradiationDTO implements Serializable {
 		this.irradiationTime = irradiationTime;
 	}
 
-	public User getIrradiator() {
-		return irradiator;
-	}
-
-	public void setIrradiator(User irradiator) {
-		this.irradiator = irradiator;
-	}
-	
 	public Long getOrderId() {
 		return orderId;
 	}
@@ -109,14 +102,6 @@ public class IrradiationDTO implements Serializable {
 		this.orderId = orderId;
 	}
 
-	public OrderInfo getOrderInfo() {
-		return orderInfo;
-	}
-
-	public void setOrderInfo(OrderInfo orderInfo) {
-		this.orderInfo = orderInfo;
-	}
-	
 	public String getComments() {
 		return comments;
 	}
@@ -132,21 +117,45 @@ public class IrradiationDTO implements Serializable {
 	public void setIrradiatorId(Long irradiatorId) {
 		this.irradiatorId = irradiatorId;
 	}
-	
-	public Set<Long> getUnits() {
-		return units;
-	}
 
-	public void setUnits(Set<Long> units) {
-		this.units = units;
-	}
-	
 	public Integer getUnitCount() {
 		return unitCount;
 	}
 
 	public void setUnitCount(Integer unitCount) {
 		this.unitCount = unitCount;
+	}
+
+	public Integer getVersion() {
+		return version;
+	}
+
+	public void setVersion(Integer version) {
+		this.version = version;
+	}
+
+	public User getIrradiator() {
+		return irradiator;
+	}
+
+	public void setIrradiator(User irradiator) {
+		this.irradiator = irradiator;
+	}
+
+	public OrderInfo getOrderInfo() {
+		return orderInfo;
+	}
+
+	public void setOrderInfo(OrderInfo orderInfo) {
+		this.orderInfo = orderInfo;
+	}
+
+	public Set<Long> getUnits() {
+		return units;
+	}
+
+	public void setUnits(Set<Long> units) {
+		this.units = units;
 	}
 
 	public IrradiationDTO(Long id, Date irradiationStart, Date irradiationEnd, String irradiationTag,
@@ -169,14 +178,6 @@ public class IrradiationDTO implements Serializable {
 		return "Irradiation [id=" + id + ", irradiationStart=" + irradiationStart + ", irradiationEnd=" + irradiationEnd
 				+ ", irradiationTag=" + irradiationTag + ", irradiationTime=" + irradiationTime + ", irradiator="
 				+ irradiator + "]";
-	}
-
-	public Integer getVersion() {
-		return version;
-	}
-
-	public void setVersion(Integer version) {
-		this.version = version;
 	}
 	
 }

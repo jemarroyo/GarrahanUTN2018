@@ -2,18 +2,18 @@ package p2018.backend.controllers;
 
 import static org.springframework.http.ResponseEntity.ok;
 
+import java.sql.Timestamp;
 import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
-import java.util.Collections;
+import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -28,19 +28,29 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.google.common.base.Predicate;
+import com.google.common.collect.Collections2;
+
+import p2018.backend.entities.CommentDTO;
+import p2018.backend.entities.GeneralComment;
 import p2018.backend.entities.Institution;
 import p2018.backend.entities.InstitutionType;
 import p2018.backend.entities.OrderInfo;
 import p2018.backend.entities.OrderInfoDTO;
 import p2018.backend.entities.OrderTransition;
 import p2018.backend.entities.Unit;
+import p2018.backend.entities.UnitDTO;
 import p2018.backend.entities.UnitType;
 import p2018.backend.entities.UnitTypeMappings;
+import p2018.backend.entities.UpdatedOrderDTO;
+import p2018.backend.entities.User;
 import p2018.backend.exceptions.GarrahanAPIException;
+import p2018.backend.repository.GeneralCommentRepository;
 import p2018.backend.repository.InstitutionRepository;
 import p2018.backend.repository.InstitutionTypeRepository;
 import p2018.backend.repository.OrderInfoDTORepository;
@@ -49,6 +59,9 @@ import p2018.backend.repository.OrderTransitionRepository;
 import p2018.backend.repository.UnitRepository;
 import p2018.backend.repository.UnitTypeMappingsRepository;
 import p2018.backend.repository.UnitTypeRepository;
+import p2018.backend.repository.UserRepository;
+import p2018.backend.utils.Constants;
+import p2018.backend.utils.JwtTokenUtil;
 import p2018.backend.utils.RequestFilterParser;
 
 @RestController
@@ -83,6 +96,15 @@ public class OrderController {
 	@Autowired
 	private UnitTypeMappingsRepository unitTypeMappingsRepository;
 	
+	@Autowired
+	private GeneralCommentRepository generalCommentRepository;
+	
+	@Autowired
+	private UserRepository userRepository;
+	
+	@Autowired
+	private JwtTokenUtil tokenUtil;
+	
 	@GetMapping("/orders")
 	public List<OrderInfo> getOrders(){
 		return orderrepository.findAll();
@@ -108,7 +130,27 @@ public class OrderController {
 	}
 	
 	@GetMapping("/orders/{id}")
-	public OrderInfo getOrder(@PathVariable Long id){
+	public OrderInfo getOrder(@PathVariable Long id, @RequestHeader("Authorization") String token){
+		
+		String message = null;
+		String workingToken = token.replace(Constants.TOKEN_BEARER_PREFIX, "");
+		String username = tokenUtil.getUsernameFromToken(workingToken);
+		User user;
+		
+		if(workingToken != null || username != null) {
+			
+			OrderInfo order = orderrepository.getOne(id);
+			user = userRepository.findByUsername(username);
+			
+			if(user.getIsInternal() || order.getInstitutionId() == user.getInstitutionId()) {
+				message = "ok";
+			}else {
+				message = "No tiene permisos para acceder a la order: " + id;
+				Exception e = new Exception("Error de acceso");
+				throw new GarrahanAPIException(message, e);
+			}	
+		}
+		
 		return orderrepository.getOne(id);
 	}
 	
@@ -121,10 +163,11 @@ public class OrderController {
 	@PostMapping("/orders")
 	public OrderInfo createOrder(@RequestBody OrderInfoDTO order){
 		
-		order.setUnitCount(order.getUnits().size());
+		Collection<UnitDTO> units = order.getUnits();
+		order.setUnitCount(units.size());
 		OrderInfoDTO orderDTO =  orderInfoDTORepository.save(order);
-		
 		List<UnitType> unitTypes = unitTypeRepository.findAll();
+		
 		for (Iterator<UnitType> iterator = unitTypes.iterator(); iterator.hasNext();) {
 			
 			UnitType unitType = (UnitType) iterator.next();
@@ -132,17 +175,97 @@ public class OrderController {
 			unitTypeMaping.setOrderId(orderDTO.getId());
 			unitTypeMaping.setUnitTypeId(unitType.getId());
 			
-			int occurrences = Collections.frequency(order.getUnits(), "bat");
-			unitTypeMaping.setCount(occurrences);
+			Collections2.filter(units, new Predicate<UnitDTO>() {
+				  @Override
+				  public boolean apply(UnitDTO candidate) {
+				    return unitType.getId().equals(candidate.getUnitTypeId());
+				  }
+				});
+			
+			unitTypeMaping.setCount(units.size());
+			unitTypeMappingsRepository.save(unitTypeMaping);
 			
 		}
 		
 		return orderrepository.getOne(orderDTO.getId());
 	}
 	
-	@PutMapping("/orders")
-	public OrderInfo updateUnit(@RequestBody OrderInfo order){
-		return orderrepository.save(order);
+	@PutMapping("/orders/update/{id}")
+	public OrderInfo confirmOrderEdition(@RequestBody UpdatedOrderDTO order, @PathVariable Long id){
+		
+		OrderInfo savedOrder = null;
+		try {
+			savedOrder = orderrepository.getOne(id);
+			
+			savedOrder.setCarrier(order.getCarrier());
+			savedOrder.setCode(order.getCode());
+			savedOrder.setPriorityId(order.getPriorityId());
+			savedOrder.setStatusId(order.getStatusId());
+			savedOrder.setOwnerId(order.getOwnerId());
+			savedOrder.setInstitutionId(order.getInstitutionId());
+			savedOrder.setUnitCount(order.getUnits().size());
+			
+			savedOrder = orderrepository.save(savedOrder);	
+			
+			if(order.getRemovedUnitIds().size() > 0) {
+				for (Long unitId : order.getRemovedUnitIds()) {
+					unitRepository.deleteById(unitId);
+				}
+			}
+			
+			List<UnitDTO> units = order.getUnits();
+			
+			for (UnitDTO unitDTO : units) {
+				
+				if(unitDTO.getId() != null) {
+					
+					Unit unitWithId = unitRepository.getOne(unitDTO.getId());
+					unitWithId.setCode(unitDTO.getCode());
+					unitWithId.setCreationDate(unitDTO.getCreationDate());
+					unitWithId.setOrderId(unitDTO.getOrderId());
+					unitWithId.setUnitTypeId(unitDTO.getUnitTypeId());
+					
+					unitRepository.save(unitWithId);
+					
+				}else {
+					
+					Unit unitWithoutId = new Unit();
+					unitWithoutId.setCode(unitDTO.getCode());
+					unitWithoutId.setCreationDate(unitDTO.getCreationDate());
+					unitWithoutId.setOrderId(unitDTO.getOrderId());
+					unitWithoutId.setUnitTypeId(unitDTO.getUnitTypeId());
+					
+					unitRepository.save(unitWithoutId);
+				}
+			}
+			
+			unitTypeMappingsRepository.deleteAllByOrderId(id);
+			List<UnitType> unitTypes = unitTypeRepository.findAll();
+			
+			for (Iterator<UnitType> iterator = unitTypes.iterator(); iterator.hasNext();) {
+				
+				UnitType unitType = (UnitType) iterator.next();
+				UnitTypeMappings unitTypeMaping = new UnitTypeMappings();
+				unitTypeMaping.setOrderId(id);
+				unitTypeMaping.setUnitTypeId(unitType.getId());
+				
+				Collections2.filter(units, new Predicate<UnitDTO>() {
+					  @Override
+					  public boolean apply(UnitDTO candidate) {
+					    return unitType.getId().equals(candidate.getUnitTypeId());
+					  }
+					});
+				
+				unitTypeMaping.setCount(units.size());
+				unitTypeMappingsRepository.save(unitTypeMaping);
+				
+			}
+			
+		}catch (Exception e) {
+			// TODO: handle exception
+		}
+		
+		return savedOrder;
 	}
 	
 	@GetMapping("/orders/{id}/units/count")
@@ -156,21 +279,6 @@ public class OrderController {
 		partialUpdate.setId(new Long(id));
 		orderTransitionRepository.save(partialUpdate);
 		OrderInfo order = orderrepository.getOne(new Long(id));
-		Set<Unit> units = order.getUnits();
-		
-		for (Iterator<Unit> iterator = units.iterator(); iterator.hasNext();) {
-			
-			Unit unit = (Unit) iterator.next();
-			Long typeId = unit.getType().getId();
-			
-			UnitTypeMappings unitTypeMapping = new UnitTypeMappings();
-			unitTypeMapping.setCount(1);
-			unitTypeMapping.setUnitTypeId(typeId);
-			unitTypeMapping.setOrderId(new Long(id));
-			
-			unitTypeMappingsRepository.save(unitTypeMapping);
-			
-		}
 		
 	    return ResponseEntity.ok(order);
 	}
@@ -241,6 +349,50 @@ public class OrderController {
 		model.put("orders", orders);
 		model.put("total", orders.size());
 		
+		return ok(model);
+	}
+	
+	@PostMapping("orders/{id}/comments")
+	public ResponseEntity<?> createComment(@RequestBody CommentDTO commentDto, @PathVariable Long id, @RequestHeader("Authorization") String token){
+		
+		Map<Object, Object> model = new HashMap<>();
+		String message = null;
+		String workingToken = token.replace(Constants.TOKEN_BEARER_PREFIX, "");
+		String username = tokenUtil.getUsernameFromToken(workingToken);
+		User user;
+		
+		try {
+			if (username != null) {
+				
+				user = userRepository.findByUsername(username);
+				
+				GeneralComment comment = new GeneralComment();
+				comment.setOperatorId(user.getId());
+				comment.setOrderId(id);
+				comment.setDate((new Timestamp((new Date()).getTime())));
+				comment.setText(commentDto.getText());
+		
+				generalCommentRepository.save(comment);
+				message = "Comentario agregado con éxito";
+			}else {
+				message = "No se pudo obtener el usuario";
+			}
+		} catch (Exception e) {
+			throw new GarrahanAPIException(message, e);
+		}
+		
+		model.put("message", message);
+		return ok(model);
+		
+	}
+	
+	@GetMapping("/orders/{id}/comments")
+	public  ResponseEntity getOrderGeneralComments(@PathVariable Long orderId){
+		
+		Map<Object, Object> model = new HashMap<>();
+		List<GeneralComment> comments = generalCommentRepository.findCommentByOrderId(orderId);
+		
+		model.put("comments", comments);
 		return ok(model);
 	}
 	

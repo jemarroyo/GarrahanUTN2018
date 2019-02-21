@@ -10,7 +10,7 @@ import javax.persistence.OneToMany;
 import javax.persistence.OneToOne;
 import javax.persistence.Version;
 
-import com.fasterxml.jackson.annotation.JsonManagedReference;
+import com.fasterxml.jackson.annotation.JsonBackReference;
 
 @Entity
 public class Institution extends AuditableEntity implements Serializable{
@@ -24,6 +24,7 @@ public class Institution extends AuditableEntity implements Serializable{
 	private String email;
 	private Integer userCount;
 	private Integer orderCount;
+	private String invalidCharCount;
 	
 	@Version
 	private Integer version;
@@ -33,7 +34,7 @@ public class Institution extends AuditableEntity implements Serializable{
 	private InstitutionType type;
 	
 	@OneToMany(mappedBy = "institution")
-	@JsonManagedReference
+	@JsonBackReference
 	private Set<User> users;
 
 	public String getName() {
@@ -99,6 +100,14 @@ public class Institution extends AuditableEntity implements Serializable{
 	public void setUsers(Set<User> users) {
 		this.users = users;
 	}
+	
+	public String getInvalidCharCount() {
+		return invalidCharCount;
+	}
+
+	public void setInvalidCharCount(String invalidCharCount) {
+		this.invalidCharCount = invalidCharCount;
+	}
 
 	public Institution(String name, String cuit, String address, String email, Integer userCount, Integer orderCount,
 			InstitutionType type) {
@@ -112,7 +121,7 @@ public class Institution extends AuditableEntity implements Serializable{
 	}
 
 	public Institution() {
-		super();
+	
 	}
 
 	@Override

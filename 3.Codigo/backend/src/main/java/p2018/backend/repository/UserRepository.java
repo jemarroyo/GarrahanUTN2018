@@ -17,4 +17,10 @@ public interface UserRepository extends JpaRepository<User, Long> {
 	@Query("select count(u) from User u where u.institutionId = :institutionId")
 	Long findUserCountByInstitytionId(@Param("institutionId") Long institutionId);
 	
+	@Query("select u from User u where u.email = :email")
+	User findUserByEmail(@Param("email") String email);
+	
+	@Query("select u from User u where u.verificationToken = :verificationToken")
+	User findUserByVerificationToken(@Param("verificationToken") String verificationToken);
+	
 }

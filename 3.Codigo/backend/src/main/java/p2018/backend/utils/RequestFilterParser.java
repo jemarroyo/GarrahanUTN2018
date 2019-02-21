@@ -11,6 +11,7 @@ import org.springframework.stereotype.Component;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.JsonNodeType;
 
 import p2018.backend.exceptions.GarrahanAPIException;
 
@@ -72,6 +73,13 @@ public class RequestFilterParser {
 			Iterator<JsonNode> i = this.fetchFilterParameter(actualTree.toString());
 			Integer checkPosition = 0;
 			
+			if(!i.toString().contains("where") && i.toString().contains("institutionId")) {
+				JsonNode jsonNode = (JsonNode) i.next();
+				Long institutionId = new Long(jsonNode.get("institutionId").asInt());
+				OrderInfoSpecification spec = new OrderInfoSpecification(new SearchCriteria("institutionId", ":", institutionId));
+				return Specification.where(spec);
+			}
+			
 			while (i.hasNext()) {
 				JsonNode jsonNode = (JsonNode) i.next();
 				
@@ -88,6 +96,7 @@ public class RequestFilterParser {
 				
 				if(jsonNode.get("statusId") != null) {
 					String statusId = jsonNode.get("statusId").toString();
+					statusId = statusId.replace("\"", "");
 					OrderInfoSpecification spec = new OrderInfoSpecification(new SearchCriteria("statusId", ":", statusId));
 					if(checkPosition == 0) {
 						value = Specification.where(spec);
@@ -116,6 +125,17 @@ public class RequestFilterParser {
 					//code = "%" + code + "%";
 							
 					OrderInfoSpecification spec = new OrderInfoSpecification(new SearchCriteria("code", ":", code));
+					if(checkPosition == 0) {
+						value = Specification.where(spec);
+					}else{
+						value = value.and(spec);
+					}
+					checkPosition++;
+				}
+				
+				if(jsonNode.getNodeType().equals(JsonNodeType.NUMBER)) {
+					Long institutionId = new Long(jsonNode.asLong());
+					OrderInfoSpecification spec = new OrderInfoSpecification(new SearchCriteria("institutionId", ":", institutionId));
 					if(checkPosition == 0) {
 						value = Specification.where(spec);
 					}else{

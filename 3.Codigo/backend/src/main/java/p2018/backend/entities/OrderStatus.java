@@ -27,12 +27,12 @@ public class OrderStatus implements Serializable {
 		this.description = description;
 	}
 	public OrderStatus(String name, String description) {
-		super();
+		
 		this.name = name;
 		this.description = description;
 	}
 	public OrderStatus() {
-		super();
+		
 	}
 	@Override
 	public String toString() {

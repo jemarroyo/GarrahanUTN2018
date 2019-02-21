@@ -24,6 +24,7 @@ public class Unit extends AuditableEntity implements Serializable {
 	private Boolean irradiated;
 	private Long irradiationId;
 	private Long irradiatorUserId;
+	private Long unitTypeId;
 	
 	@Version
 	private Integer version;
@@ -32,7 +33,7 @@ public class Unit extends AuditableEntity implements Serializable {
 	private Long orderId;
 	
 	@OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "unitTypeId")
+    @JoinColumn(name = "unitTypeId", insertable = false, updatable = false)
 	private UnitType type;
 	
 	@OneToOne(fetch = FetchType.LAZY)
@@ -119,6 +120,14 @@ public class Unit extends AuditableEntity implements Serializable {
 
 	public void setOrderInfo(OrderInfo orderInfo) {
 		this.orderInfo = orderInfo;
+	}
+	
+	public Long getUnitTypeId() {
+		return unitTypeId;
+	}
+
+	public void setUnitTypeId(Long unitTypeId) {
+		this.unitTypeId = unitTypeId;
 	}
 
 	public Unit(String code, UnitType type, User irradiatorUser) {

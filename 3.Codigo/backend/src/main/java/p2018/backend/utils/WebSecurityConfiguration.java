@@ -48,6 +48,8 @@ public class WebSecurityConfiguration extends WebSecurityConfigurerAdapter {
 		.cors().and()
 		.csrf().disable()
 		.authorizeRequests().antMatchers(HttpMethod.POST, Constants.LOGIN_URL).permitAll()
+		.antMatchers("/api/confirm-account").permitAll()
+		.antMatchers("/api/xusers/register").permitAll()
 		.anyRequest().authenticated().and().formLogin().and()
 		.httpBasic()
 		.and()
@@ -55,11 +57,12 @@ public class WebSecurityConfiguration extends WebSecurityConfigurerAdapter {
 			.addFilter(new JWTAuthorizationFilter(authenticationManager()));
     }
 	
-	/*
-	 * @Bean public WebMvcConfigurer corsConfigurer() { return new
-	 * WebMvcConfigurerAdapter() {
-	 * 
-	 * @Override public void addCorsMappings(CorsRegistry registry) {
-	 * registry.addMapping("/**").allowedOrigins("*"); } }; }
-	 */
+	/**
+	@Bean
+	CorsConfigurationSource corsConfigurationSource() {
+	    final UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+	    source.registerCorsConfiguration("/**", new CorsConfiguration().applyPermitDefaultValues());
+	    return source;
+	 }
+	**/
 }

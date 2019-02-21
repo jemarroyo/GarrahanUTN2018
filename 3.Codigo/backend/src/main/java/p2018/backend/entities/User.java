@@ -3,6 +3,7 @@ package p2018.backend.entities;
 import java.io.Serializable;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.UUID;
 
 import javax.persistence.CascadeType;
 import javax.persistence.Column;
@@ -11,6 +12,7 @@ import javax.persistence.FetchType;
 import javax.persistence.JoinColumn;
 import javax.persistence.JoinTable;
 import javax.persistence.ManyToMany;
+import javax.persistence.OneToMany;
 import javax.persistence.OneToOne;
 import javax.persistence.Table;
 import javax.persistence.Version;
@@ -18,6 +20,7 @@ import javax.persistence.Version;
 import org.springframework.security.crypto.bcrypt.BCrypt;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 
 @Entity
 @Table(name = "XUser")
@@ -48,7 +51,7 @@ public class User extends AuditableEntity implements Serializable {
 	
 	@OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "institutionId")
-	@JsonBackReference
+	@JsonManagedReference
 	private Institution institution;
 	
 	@ManyToMany(fetch = FetchType.EAGER, cascade = { CascadeType.ALL })
@@ -58,6 +61,10 @@ public class User extends AuditableEntity implements Serializable {
         inverseJoinColumns = { @JoinColumn(name = "roleId")}
     )
 	private Set<Role> roles = new HashSet<>();
+	
+	@OneToMany(mappedBy = "operator")
+	@JsonBackReference
+	private Set<GeneralComment> coments;
 
 	public String getFirstname() {
 		return firstname;
@@ -179,13 +186,17 @@ public class User extends AuditableEntity implements Serializable {
 		this.institution = institution;
 	}
 	
-
 	public Set<Role> getRoles() {
 		return roles;
 	}
-
 	public void setRoles(Set<Role> roles) {
 		this.roles = roles;
+	}
+	public Set<GeneralComment> getComents() {
+		return coments;
+	}
+	public void setComents(Set<GeneralComment> coments) {
+		this.coments = coments;
 	}
 
 	@Override
@@ -212,10 +223,12 @@ public class User extends AuditableEntity implements Serializable {
 		this.verificationToken = verificationToken;
 		this.institution = institution;
 		this.email = email;
+		this.verificationToken = UUID.randomUUID().toString();
 	}
 
 	public User() {
-	
+		this.verificationToken = UUID.randomUUID().toString();
+		this.avatarUrl = "/assets/avatar.svg";
 	}
 
 	public Integer getVersion() {

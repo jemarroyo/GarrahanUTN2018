@@ -10,6 +10,7 @@ import javax.persistence.JoinColumn;
 import javax.persistence.ManyToOne;
 import javax.persistence.OneToOne;
 import javax.persistence.Table;
+import javax.persistence.Transient;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
@@ -23,6 +24,8 @@ public class ConciliationComment extends AuditableEntity implements Serializable
 	private String comment;
 	private Date date;
 	private Long orderId;
+	@Transient
+	private String text;
 	
 	@Column(name = "operatorId", insertable = false, updatable = false)
 	private Long operatorId;
@@ -82,6 +85,14 @@ public class ConciliationComment extends AuditableEntity implements Serializable
 
 	public void setOperator(User operator) {
 		this.operator = operator;
+	}
+
+	public String getText() {
+		return text;
+	}
+
+	public void setText(String text) {
+		this.text = text;
 	}
 
 	public ConciliationComment(String comment, Date date, Long operatorId, Long orderId) {
