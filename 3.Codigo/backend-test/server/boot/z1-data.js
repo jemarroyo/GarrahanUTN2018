@@ -21,15 +21,18 @@ module.exports = async (app, cb) => {
             data.institutions.map(i => ({
                 ...i,
                 cuit: `30${random.string({ length: 8, pool: pool })}${random.string({ length: 1, pool: pool })}`,
-                typeId: institutionTypes[randomBetween(0, institutionTypes.length - 1)].id,
-                invalidCharCount: randomBetween(0, 3)
+                //typeId: institutionTypes[randomBetween(0, institutionTypes.length - 1)].id,
+                invalidCharCount: 1 //randomBetween(0, 3)
             }))
         )
         var unitTypes = await app.models.UnitType.create(data.unitTypes)
         var orderStatuses = await app.models.OrderStatus.create(data.orderStatuses)
         var orderPriorities = await app.models.OrderPriority.create(data.orderPriorities)
 
+        var op = await app.models.XRole.create(data.roles[0]); 
+
         var operador = await app.models.XUser.create(data.users[0])
+
         var administrador = await app.models.XUser.create(data.users[1])
         var cliente1 = await app.models.XUser.create({
             ...data.users[2],
@@ -39,8 +42,12 @@ module.exports = async (app, cb) => {
             ...data.users[3],
             institutionId: institutions[4].id
         })
+        var cliente3 = await app.models.XUser.create({
+            ...data.users[4],
+            institutionId: institutions[4].id
+        })
 
-        var op = await app.models.XRole.create(data.roles[0]);
+        //var op = await app.models.XRole.create(data.roles[0]);
         var admin = await app.models.XRole.create(data.roles[1]);
         var client = await app.models.XRole.create(data.roles[2]);
 
@@ -49,6 +56,13 @@ module.exports = async (app, cb) => {
         await administrador.roles.add(admin)
         await cliente1.roles.add(client)
         await cliente2.roles.add(client)
+        await cliente3.roles.add(client)
+        
+
+        for (var i=5; i<=98;i++){
+            var operador = await app.models.XUser.create(data.users[i])    
+            await operador.roles.add(op)  
+        }
 
         let users = await app.models.XUser.find()
 
