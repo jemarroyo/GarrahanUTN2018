@@ -29,7 +29,7 @@ public class Unit extends AuditableEntity implements Serializable {
 	@Version
 	private Integer version;
 	
-	@Column(name = "orderId", insertable = false, updatable = false)
+	@Column(name = "orderId")
 	private Long orderId;
 	
 	@OneToOne(fetch = FetchType.LAZY)

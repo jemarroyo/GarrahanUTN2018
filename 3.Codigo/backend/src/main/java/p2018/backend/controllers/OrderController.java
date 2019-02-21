@@ -20,6 +20,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.http.ResponseEntity;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -32,9 +33,6 @@ import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-
-import com.google.common.base.Predicate;
-import com.google.common.collect.Collections2;
 
 import p2018.backend.entities.CommentDTO;
 import p2018.backend.entities.GeneralComment;
@@ -161,39 +159,69 @@ public class OrderController {
 	}
 	
 	@PostMapping("/orders")
+	@Transactional
 	public OrderInfo createOrder(@RequestBody OrderInfoDTO order){
 		
-		Collection<UnitDTO> units = order.getUnits();
-		order.setUnitCount(units.size());
-		OrderInfoDTO orderDTO =  orderInfoDTORepository.save(order);
-		List<UnitType> unitTypes = unitTypeRepository.findAll();
+		OrderInfoDTO orderDTO = null;
+		String message = null;
 		
-		for (Iterator<UnitType> iterator = unitTypes.iterator(); iterator.hasNext();) {
+		try {
 			
-			UnitType unitType = (UnitType) iterator.next();
-			UnitTypeMappings unitTypeMaping = new UnitTypeMappings();
-			unitTypeMaping.setOrderId(orderDTO.getId());
-			unitTypeMaping.setUnitTypeId(unitType.getId());
+			Institution intitution = institutionRepository.getOne(order.getInstitutionId());
+			Collection<UnitDTO> units = order.getUnits();
 			
-			Collections2.filter(units, new Predicate<UnitDTO>() {
-				  @Override
-				  public boolean apply(UnitDTO candidate) {
-				    return unitType.getId().equals(candidate.getUnitTypeId());
-				  }
-				});
+			order.setUnitCount(units.size());
+			orderDTO =  orderInfoDTORepository.save(order);
 			
-			unitTypeMaping.setCount(units.size());
-			unitTypeMappingsRepository.save(unitTypeMaping);
+			for (UnitDTO unitDTO : units) {
+				
+				Unit unit = new Unit();
+				unit.setCode(unitDTO.getCode());
+				unit.setOrderId(orderDTO.getId());
+				unit.setUnitTypeId(unitDTO.getUnitTypeId());
+				
+				unitRepository.save(unit);
+			}
 			
+			List<UnitType> unitTypes = unitTypeRepository.findAll();
+			
+			for (Iterator<UnitType> iterator = unitTypes.iterator(); iterator.hasNext();) {
+				
+				UnitType unitType = (UnitType) iterator.next();
+				UnitTypeMappings unitTypeMaping = new UnitTypeMappings();
+				unitTypeMaping.setOrderId(orderDTO.getId());
+				unitTypeMaping.setUnitTypeId(unitType.getId());
+				int count = 0;
+				
+				
+				for (UnitDTO unitDTO : units) {
+					if(unitDTO.getUnitTypeId().equals(unitType.getId())) {
+						count++;
+					}
+				}
+				
+				unitTypeMaping.setCount(count);
+				unitTypeMappingsRepository.save(unitTypeMaping);
+			}
+			
+			intitution.setOrderCount(intitution.getOrderCount() + 1);
+			institutionRepository.save(intitution);
+			
+		} catch (Exception e) {
+			message = "Error actualizando Order.";
+			throw new GarrahanAPIException(message, e);
 		}
 		
 		return orderrepository.getOne(orderDTO.getId());
 	}
 	
 	@PutMapping("/orders/update/{id}")
+	@Transactional
 	public OrderInfo confirmOrderEdition(@RequestBody UpdatedOrderDTO order, @PathVariable Long id){
 		
 		OrderInfo savedOrder = null;
+		String message = null;
+		
 		try {
 			savedOrder = orderrepository.getOne(id);
 			
@@ -222,7 +250,7 @@ public class OrderController {
 					Unit unitWithId = unitRepository.getOne(unitDTO.getId());
 					unitWithId.setCode(unitDTO.getCode());
 					unitWithId.setCreationDate(unitDTO.getCreationDate());
-					unitWithId.setOrderId(unitDTO.getOrderId());
+					unitWithId.setOrderId(savedOrder.getId());
 					unitWithId.setUnitTypeId(unitDTO.getUnitTypeId());
 					
 					unitRepository.save(unitWithId);
@@ -232,14 +260,18 @@ public class OrderController {
 					Unit unitWithoutId = new Unit();
 					unitWithoutId.setCode(unitDTO.getCode());
 					unitWithoutId.setCreationDate(unitDTO.getCreationDate());
-					unitWithoutId.setOrderId(unitDTO.getOrderId());
+					unitWithoutId.setOrderId(savedOrder.getId());
 					unitWithoutId.setUnitTypeId(unitDTO.getUnitTypeId());
 					
 					unitRepository.save(unitWithoutId);
 				}
 			}
 			
-			unitTypeMappingsRepository.deleteAllByOrderId(id);
+			
+			for (UnitTypeMappings unitTypeMap : unitTypeMappingsRepository.getAllByOrderId(id)) {
+				unitTypeMappingsRepository.delete(unitTypeMap);
+			}
+			
 			List<UnitType> unitTypes = unitTypeRepository.findAll();
 			
 			for (Iterator<UnitType> iterator = unitTypes.iterator(); iterator.hasNext();) {
@@ -248,21 +280,23 @@ public class OrderController {
 				UnitTypeMappings unitTypeMaping = new UnitTypeMappings();
 				unitTypeMaping.setOrderId(id);
 				unitTypeMaping.setUnitTypeId(unitType.getId());
+				int count = 0;
 				
-				Collections2.filter(units, new Predicate<UnitDTO>() {
-					  @Override
-					  public boolean apply(UnitDTO candidate) {
-					    return unitType.getId().equals(candidate.getUnitTypeId());
-					  }
-					});
 				
-				unitTypeMaping.setCount(units.size());
+				for (UnitDTO unitDTO : units) {
+					if(unitDTO.getUnitTypeId().equals(unitType.getId())) {
+						count++;
+					}
+				}
+				
+				unitTypeMaping.setCount(count);
 				unitTypeMappingsRepository.save(unitTypeMaping);
 				
 			}
 			
 		}catch (Exception e) {
-			// TODO: handle exception
+			message = "Error actualizando Order.";
+			throw new GarrahanAPIException(message, e);
 		}
 		
 		return savedOrder;
@@ -338,7 +372,6 @@ public class OrderController {
 			institutionTypes = institutionTypeRepository.findAll();
 			
 		} catch (ParseException e) {
-			e.printStackTrace();
 			throw new GarrahanAPIException("Error parsing filter parameter from request", e);
 		}
 		

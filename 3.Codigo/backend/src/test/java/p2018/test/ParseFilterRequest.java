@@ -39,6 +39,8 @@ public class ParseFilterRequest {
 	
 	private String filter_5 = "{\"where\":{\"institutionId\":5},\"skip\":0,\"limit\":20,\"order\":[\"lastModified DESC\"],\"include\":[{\"units\":{\"type\":true}},{\"status\":true},{\"priority\":true},{\"owner\":true},{\"institution\":true}]}";
 	
+	private String filter_6 = "{\"where\":{\"institutionId\":\"6\"},\"limit\":5,\"order\":[\"creationDate DESC\"]}";
+
 	@Test
 	public void ParseFilter(){
 		
@@ -46,7 +48,7 @@ public class ParseFilterRequest {
 		Specification value = null;
 		
 		try {
-			JsonNode actualTree = mapper.readTree(filter_5);
+			JsonNode actualTree = mapper.readTree(filter_6);
 			//JsonNode whereTree = actualTree.get("where");
 			Iterator<JsonNode> i = this.fetchFilterParameter(actualTree.toString());
 			Integer checkPosition = 0;
@@ -105,6 +107,17 @@ public class ParseFilterRequest {
 				
 				if(jsonNode.getNodeType().equals(JsonNodeType.NUMBER)) {
 					Long institutionId = new Long(jsonNode.asLong());
+					OrderInfoSpecification spec = new OrderInfoSpecification(new SearchCriteria("institutionId", ":", institutionId));
+					if(checkPosition == 0) {
+						value = Specification.where(spec);
+					}else{
+						value = value.and(spec);
+					}
+					checkPosition++;
+				}
+				
+				if(jsonNode.getNodeType().equals(JsonNodeType.STRING)) {
+					Long institutionId = new Long(jsonNode.toString().replace("\"", ""));
 					OrderInfoSpecification spec = new OrderInfoSpecification(new SearchCriteria("institutionId", ":", institutionId));
 					if(checkPosition == 0) {
 						value = Specification.where(spec);
@@ -198,5 +211,22 @@ public class ParseFilterRequest {
 		}
 		
 		assertTrue(!dateParsed.equals(null));
+	}
+	
+	
+	public void checkRequest() {
+		
+		ObjectMapper mapper = new ObjectMapper();
+		String institutionId = null;
+		try {
+			
+			JsonNode actualTree = mapper.readTree(filter_5);
+			institutionId = actualTree.get("institutionId").toString();
+			
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		assertTrue(!institutionId.equals(null));
 	}
 }

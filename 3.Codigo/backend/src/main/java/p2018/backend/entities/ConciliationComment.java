@@ -27,7 +27,7 @@ public class ConciliationComment extends AuditableEntity implements Serializable
 	@Transient
 	private String text;
 	
-	@Column(name = "operatorId", insertable = false, updatable = false)
+	@Column(name = "operatorId")
 	private Long operatorId;
 	
 	@ManyToOne
@@ -36,7 +36,7 @@ public class ConciliationComment extends AuditableEntity implements Serializable
 	private OrderInfo orderInfo;
 	
 	@OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "operatorId")
+    @JoinColumn(name = "operatorId", insertable = false, updatable = false)
 	private User operator;
 
 	public String getComment() {

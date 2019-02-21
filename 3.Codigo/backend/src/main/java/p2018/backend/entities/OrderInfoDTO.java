@@ -11,6 +11,7 @@ import javax.persistence.FetchType;
 import javax.persistence.JoinColumn;
 import javax.persistence.JoinTable;
 import javax.persistence.ManyToMany;
+import javax.persistence.OneToMany;
 import javax.persistence.PrePersist;
 import javax.persistence.Table;
 
@@ -32,12 +33,7 @@ public class OrderInfoDTO extends AuditableEntity implements Serializable {
 	private String statusId;
 	private Date lastModified;
 	
-	@ManyToMany(fetch = FetchType.LAZY, cascade = { CascadeType.ALL })
-    @JoinTable(
-        name = "UnitTypeMapping", 
-        joinColumns = { @JoinColumn(name = "orderId") }, 
-        inverseJoinColumns = { @JoinColumn(name = "unitTypeId")}
-    )
+	@OneToMany(mappedBy = "orderInfo")
 	private Set<UnitDTO> units;
 
 	public String getCarrier() {

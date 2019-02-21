@@ -144,6 +144,17 @@ public class RequestFilterParser {
 					checkPosition++;
 				}
 				
+				if(jsonNode.getNodeType().equals(JsonNodeType.STRING)) {
+					Long institutionId = new Long(jsonNode.toString().replace("\"", ""));
+					OrderInfoSpecification spec = new OrderInfoSpecification(new SearchCriteria("institutionId", ":", institutionId));
+					if(checkPosition == 0) {
+						value = Specification.where(spec);
+					}else{
+						value = value.and(spec);
+					}
+					checkPosition++;
+				}
+				
 			}
 			
 		} catch (IOException e) {
@@ -184,5 +195,19 @@ public class RequestFilterParser {
 		}
 		 
 		return iterator;
+	}
+	
+	public JsonNode parseGenericBodyRequest(String request) {
+		
+		ObjectMapper mapper = new ObjectMapper();
+		JsonNode jsonNode = null;
+		
+		try {
+			jsonNode = mapper.readTree(request);
+		}catch (Exception e) {
+			throw new GarrahanAPIException("Error parsing request.", e);
+		}
+		
+		return jsonNode;
 	}
 }

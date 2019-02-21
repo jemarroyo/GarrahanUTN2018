@@ -31,17 +31,23 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.fasterxml.jackson.databind.JsonNode;
+
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import p2018.backend.entities.Institution;
+import p2018.backend.entities.Role;
 import p2018.backend.entities.User;
+import p2018.backend.exceptions.GarrahanAPIException;
 import p2018.backend.repository.InstitutionRepository;
 import p2018.backend.repository.OrderRepository;
+import p2018.backend.repository.RoleRepository;
 import p2018.backend.repository.UserRepository;
 import p2018.backend.service.EmailSenderService;
 import p2018.backend.utils.ActivationUserMessage;
 import p2018.backend.utils.AuthenticationRequest;
 import p2018.backend.utils.Constants;
+import p2018.backend.utils.RequestFilterParser;
 
 
 @RestController
@@ -64,6 +70,12 @@ public class UserController {
 	@Autowired
 	private InstitutionRepository institutionRepository;
 	
+	@Autowired
+	private RequestFilterParser requestFilterParser;
+	
+	@Autowired
+	private RoleRepository roleRepository;
+	
 	@GetMapping("/xusers")
 	public List<User> getUsers(){
 		return userRepository.findAll();
@@ -79,6 +91,11 @@ public class UserController {
 		return userRepository.getOne(id);
 	}
 	
+	@GetMapping("/xusers/clients")
+	public List<User> getClients(){
+		return userRepository.findClients();
+	}
+	
 	@DeleteMapping("/xuser/{id}")
 	public boolean deleteUser(@PathVariable Long id){
 		 userRepository.deleteById(id);
@@ -87,24 +104,111 @@ public class UserController {
 	
 	@Transactional
 	@PostMapping("/xusers/operators")
-	public User createUser(@RequestBody User user){
+	public User createOperator(@RequestBody String request){
 		
-		String encryptPassword = BCrypt.hashpw("garrahan", BCrypt.gensalt());
+		String message = null;
+		JsonNode jsonRequest = requestFilterParser.parseGenericBodyRequest(request);
+		User user = null;
 		
-		Institution institution = institutionRepository.getOne(new Long(1));
-		user.setInstitution(institution);
+		try {
+			
+			String username = jsonRequest.get("username").toString().replace("\"", "");
+			String email = jsonRequest.get("email").toString().replace("\"", "");
+			String dni = jsonRequest.get("dni").toString().replace("\"", "");
+			String firstname = jsonRequest.get("firstname").toString().replace("\"", "");
+			String lastname = jsonRequest.get("lastname").toString().replace("\"", "");
+			Boolean isInternal = true;
+			Boolean accountConfirmed = false;
+			Boolean active = false;
+			String encryptPassword = BCrypt.hashpw("garrahan", BCrypt.gensalt());
+			Boolean emailVerified = false;
+			Boolean isAdmin = jsonRequest.get("isAdmin").asBoolean();
+			
+			Integer count = userRepository.checkExistentUser(email, username, dni);
+			
+			if(count > 0) {
+				message = "Error. Ya existe otro usuario con los datos ingresados";
+				Exception e = new Exception(message);
+				throw new GarrahanAPIException(message, e);
+			}
+			
+			user = new User(firstname, lastname, dni, isInternal, accountConfirmed, active, 0,
+					username, encryptPassword, emailVerified, null, email);
+			
+			Role clientRole = roleRepository.findRoleByName("operator");
+			user.getRoles().add(clientRole);
+			
+			Role adminRole = roleRepository.findRoleByName("admin");
+			
+			if(isAdmin) {
+				user.getRoles().add(adminRole);
+			}
+			
+			user = userRepository.save(user);
+			
+			ActivationUserMessage util = new ActivationUserMessage(user.getEmail(), user.getVerificationToken());
+			emailSenderService.sendEmail(util.getMessage());
+			
+		}catch (Exception e) {
+			throw new GarrahanAPIException("Error al crear Operador", e);
+		}
 		
-		user.setActive(false);
-		user.setAccountConfirmed(false);
-		user.setEmailVerified(false);
-		user.setIsInternal(false);
-		user.setOrderCount(0);
-		user.setPassword(encryptPassword);
+		return user;
+	}
+	
+	@Transactional
+	@PostMapping("/xusers/clients")
+	public User createClient(@RequestBody String request){
 		
-		User savedUser = userRepository.save(user); 
-		ActivationUserMessage util = new ActivationUserMessage(savedUser.getEmail(), savedUser.getVerificationToken());
-		emailSenderService.sendEmail(util.getMessage());
-		return savedUser;
+		String message = null;
+		JsonNode jsonRequest = requestFilterParser.parseGenericBodyRequest(request);
+		User user = null;
+		try {
+			
+			String username = jsonRequest.get("username").toString().replace("\"", "");
+			String email = jsonRequest.get("email").toString().replace("\"", "");
+			String dni = jsonRequest.get("dni").toString().replace("\"", "");
+			String firstname = jsonRequest.get("firstname").toString().replace("\"", "");
+			String lastname = jsonRequest.get("lastname").toString().replace("\"", "");
+			Boolean isInternal = false;
+			Boolean accountConfirmed = false;
+			Boolean active = false;
+			String encryptPassword = BCrypt.hashpw("garrahan", BCrypt.gensalt());
+			Boolean emailVerified = false;
+			Long institutionId = new Long(jsonRequest.get("institutionId").toString().replace("\"", ""));
+			
+			Institution institution = institutionRepository.getOne(institutionId);
+			
+			user = new User(firstname, lastname, dni, isInternal, accountConfirmed, active, 0,
+					username, encryptPassword, emailVerified, institution, email);
+			
+			if(institution == null) {
+				message = "Error. La institución para la cual se desea crear el usuario no existe";
+				Exception e = new Exception(message);
+				throw new GarrahanAPIException(message, e);
+			}
+			
+			Integer count = userRepository.checkExistentUser(email, username, dni);
+			
+			if(count > 0) {
+				message = "Error. Ya existe otro usuario con los datos ingresados";
+				Exception e = new Exception(message);
+				throw new GarrahanAPIException(message, e);
+			}
+			
+			Role clientRole = roleRepository.findRoleByName("client");
+			user.getRoles().add(clientRole);
+			
+			user = userRepository.save(user);
+			
+			ActivationUserMessage util = new ActivationUserMessage(user.getEmail(), user.getVerificationToken());
+			emailSenderService.sendEmail(util.getMessage());
+			
+		} catch (Exception e) {
+			throw new GarrahanAPIException("Error al crear cliente", e);
+		}
+
+		return user;
 	}
 	
 	@GetMapping("/confirm-account")
@@ -136,13 +240,32 @@ public class UserController {
 	}
 	
 	@PutMapping("/xusers/{id}")
-	public User updateUser(@RequestBody User user, @PathVariable Long id){
+	public User updateUser(@RequestBody String request, @PathVariable Long id){
+		
+		JsonNode jsonRequest = requestFilterParser.parseGenericBodyRequest(request);
 		User persistedUser = userRepository.getOne(id);
-		persistedUser.setEmail(user.getEmail());
-		persistedUser.setFirstname(user.getFirstname());
-		persistedUser.setLastname(user.getLastname());
-		persistedUser.setDni(user.getDni());
-		return userRepository.save(persistedUser);
+		String message = null;
+		
+		if(persistedUser == null) {
+			message = "No existen usuarios con id:" + id;
+			Exception e = new Exception(message);
+			throw new GarrahanAPIException(message, e);
+		}
+		
+		try {
+			
+			persistedUser.setEmail(jsonRequest.get("email").toString().replace("\"", ""));
+			persistedUser.setFirstname(jsonRequest.get("firstname").toString().replace("\"", ""));
+			persistedUser.setLastname(jsonRequest.get("lastname").toString().replace("\"", ""));
+			persistedUser.setDni(jsonRequest.get("dni").toString().replace("\"", ""));
+			
+			persistedUser = userRepository.save(persistedUser);
+			
+		}catch (Exception e) {
+			throw new GarrahanAPIException("Error al actualizar usuario", e);
+		}
+			
+		return persistedUser;
 	}
 	
 	@GetMapping("/xusers/{id}/orders/count")
@@ -162,6 +285,44 @@ public class UserController {
 		User user = userRepository.getOne(id);
 		user.setActive(true);
 		userRepository.save(user);
+	}
+	
+	@PutMapping("/xusers/operators/{id}/admin")
+	public void setAdmin(@RequestBody String request, @PathVariable Long id){
+		
+		JsonNode jsonRequest = requestFilterParser.parseGenericBodyRequest(request);
+		User user = null;
+		String message = null;
+		
+		try {
+			
+			boolean isAdmin = jsonRequest.get("isAdmin").asBoolean();
+			
+			user = userRepository.getOne(id);
+			
+			if(user == null) {
+				message = "No existen usuarios con id:" + id;
+				Exception e = new Exception(message);
+				throw new GarrahanAPIException(message, e);
+			}
+			
+			Role adminRole = roleRepository.findRoleByName("admin");
+			
+			if(isAdmin) {
+				user.setIsInternal(true);
+				user.getRoles().add(adminRole);
+			}else {
+				user.setIsInternal(false);
+				user.getRoles().remove(adminRole);
+			}
+			
+			userRepository.save(user);
+			
+		}catch (Exception e) {
+			message = "Error al modificar usuario";
+			throw new GarrahanAPIException(message, e);
+		}
+		
 	}
 	
 	@SuppressWarnings("rawtypes")

@@ -44,7 +44,7 @@ public class InstitutionController {
 		return institutionRepository.findAll();
 	}
 	
-	@RolesAllowed({ "ROLE_ADMIN"})
+	
 	@GetMapping("/institutions/{id}")
 	public Institution getInstitution(@PathVariable Long id){
 		return institutionRepository.getOne(id);
@@ -61,9 +61,12 @@ public class InstitutionController {
 		return institutionRepository.save(institution);
 	}
 	
-	@PutMapping("/institutions")
-	public Institution updateInstitution(@RequestBody Institution institution){
+	@PutMapping("/institutions/{id}")
+	public Institution updateInstitution(@RequestBody Institution institution, @PathVariable Long id){
+		
 		Long userCount = userRepository.findUserCountByInstitytionId(institution.getId());
+		Institution savedInstiturion = institutionRepository.getOne(id);
+		
 		institution.setUserCount(userCount.intValue());
 		return institutionRepository.save(institution);
 	}

@@ -64,7 +64,7 @@ public class User extends AuditableEntity implements Serializable {
 	
 	@OneToMany(mappedBy = "operator")
 	@JsonBackReference
-	private Set<GeneralComment> coments;
+	private Set<GeneralComment> coments = new HashSet<>();
 
 	public String getFirstname() {
 		return firstname;
@@ -205,13 +205,13 @@ public class User extends AuditableEntity implements Serializable {
 				+ ", username=" + username + "]";
 	}
 
-	public User(String firstname, String lastname, String avatarUrl, String dni, Boolean isInternal,
+	public User(String firstname, String lastname, String dni, Boolean isInternal,
 			Boolean accountConfirmed, Boolean active, Integer orderCount, String username, String password,
-			Boolean emailVerified, String verificationToken, Institution institution, String email) {
+			Boolean emailVerified, Institution institution, String email) {
 		
 		this.firstname = firstname;
 		this.lastname = lastname;
-		this.avatarUrl = avatarUrl;
+		this.avatarUrl = "/assets/avatar.svg";
 		this.dni = dni;
 		this.isInternal = isInternal;
 		this.accountConfirmed = accountConfirmed;
