@@ -335,7 +335,7 @@ public class OrderController {
 			cal.add(Calendar.MONTH, 1);
 			Date endDate = cal.getTime();
 		
-			orders = orderrepository.getMonthlyReport(startDate, endDate);
+			orders = orderrepository.getIrradiaredOrderByDateRange(startDate, endDate);
 			institutionTypes = institutionTypeRepository.findAll();
 			institutions = institutionRepository.findAll();
 			unitTypes = unitTypeRepository.findAll();
@@ -368,7 +368,7 @@ public class OrderController {
 			selectedDate = dateFormat.parse(date);
 			Date endDate = new Date(selectedDate.getTime() - 2);
 		
-			orders = orderrepository.getMonthlyReport(selectedDate, endDate);
+			orders = orderrepository.getIrradiaredOrderByDateRange(selectedDate, endDate);
 			institutionTypes = institutionTypeRepository.findAll();
 			
 		} catch (ParseException e) {
