@@ -117,6 +117,17 @@ public class RequestFilterParser {
 					checkPosition++;
 				}
 				
+				if(jsonNode.get("id") != null) {
+					Long id = new Long(jsonNode.get("id").asInt());
+					OrderInfoSpecification spec = new OrderInfoSpecification(new SearchCriteria("id", ":", id));
+					if(checkPosition == 0) {
+						value = Specification.where(spec);
+					}else{
+						value = value.and(spec);
+					}
+					checkPosition++;
+				}
+				
 				if(jsonNode.get("code") != null) {
 					String code = jsonNode.get("code").toString();
 					
