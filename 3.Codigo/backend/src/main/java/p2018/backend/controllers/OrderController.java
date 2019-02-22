@@ -366,7 +366,14 @@ public class OrderController {
 		
 		try {
 			selectedDate = dateFormat.parse(date);
-			Date endDate = new Date(selectedDate.getTime() - 2);
+			selectedDate.setHours(0);
+			selectedDate.setMinutes(0);
+			selectedDate.setSeconds(0);
+			
+			Date endDate = dateFormat.parse(date);
+			endDate.setHours(23);
+			endDate.setMinutes(59);
+			endDate.setSeconds(59);
 		
 			orders = orderrepository.getIrradiaredOrderByDateRange(selectedDate, endDate);
 			institutionTypes = institutionTypeRepository.findAll();
