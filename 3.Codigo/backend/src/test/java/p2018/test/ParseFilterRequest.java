@@ -11,6 +11,7 @@ import java.util.Calendar;
 import java.util.Date;
 import java.util.Iterator;
 
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.junit.Test;
@@ -40,133 +41,12 @@ public class ParseFilterRequest {
 	private String filter_5 = "{\"where\":{\"institutionId\":5},\"skip\":0,\"limit\":20,\"order\":[\"lastModified DESC\"],\"include\":[{\"units\":{\"type\":true}},{\"status\":true},{\"priority\":true},{\"owner\":true},{\"institution\":true}]}";
 	
 	private String filter_6 = "{\"where\":{\"institutionId\":\"6\"},\"limit\":5,\"order\":[\"creationDate DESC\"]}";
+	
+	private String filter_7 = "{\"where\":{\"and\":[{\"id\":\"000117\"},{\"code\":{\"regexp\":\".*999.*\"}},{\"institutionId\":5},{\"statusId\":\"RECHAZADA\"},{\"priorityId\":1},{\"or\":[{\"creationDate\":\"2019-02-20T03:00:00.000Z\"},{\"creationDate\":{\"gt\":\"2019-02-20T03:00:00.000Z\"}}]},{\"or\":[{\"creationDate\":\"2019-02-22T03:00:00.000Z\"},{\"creationDate\":{\"lt\":\"2019-02-22T03:00:00.000Z\"}}]}]},\"skip\":0,\"limit\":20,\"order\":[\"lastModified DESC\"],\"include\":[{\"units\":{\"type\":true}},{\"status\":true},{\"priority\":true},{\"owner\":true},{\"institution\":true}]}";
+	
+	private Specification specification = null;
+	
 
-	@Test
-	public void ParseFilter(){
-		
-		ObjectMapper mapper = new ObjectMapper();
-		Specification value = null;
-		
-		try {
-			JsonNode actualTree = mapper.readTree(filter_6);
-			//JsonNode whereTree = actualTree.get("where");
-			Iterator<JsonNode> i = this.fetchFilterParameter(actualTree.toString());
-			Integer checkPosition = 0;
-			
-			while (i.hasNext()) {
-				JsonNode jsonNode = (JsonNode) i.next();
-				
-				if(jsonNode.get("institutionId") != null) {
-					Long institutionId = new Long(jsonNode.get("institutionId").asInt());
-					OrderInfoSpecification spec = new OrderInfoSpecification(new SearchCriteria("institutionId", ":", institutionId));
-					if(checkPosition == 0) {
-						value = Specification.where(spec);
-					}else{
-						value = value.and(spec);
-					}
-					checkPosition++;
-				}
-				
-				if(jsonNode.get("statusId") != null) {
-					String statusId = jsonNode.get("statusId").toString();
-					OrderInfoSpecification spec = new OrderInfoSpecification(new SearchCriteria("statusId", ":", statusId));
-					if(checkPosition == 0) {
-						value = Specification.where(spec);
-					}else{
-						value = value.and(spec);
-					}
-					checkPosition++;
-				}
-				
-				if(jsonNode.get("priorityId") != null) {
-					Long priorityId = new Long(jsonNode.get("priorityId").asInt());
-					OrderInfoSpecification spec = new OrderInfoSpecification(new SearchCriteria("priorityId", ":", priorityId));
-					if(checkPosition == 0) {
-						value = Specification.where(spec);
-					}else{
-						value = value.and(spec);
-					}
-					checkPosition++;
-				}
-				
-				if(jsonNode.get("code") != null) {
-					String code = jsonNode.get("code").toString();
-					
-					code = code.replace("{\"regexp\":\".*", "");
-					code = code.replace(".*\"}", "");
-					code = "%" + code + "%";
-							
-					OrderInfoSpecification spec = new OrderInfoSpecification(new SearchCriteria("code", "like", code));
-					if(checkPosition == 0) {
-						value = Specification.where(spec);
-					}else{
-						value = value.and(spec);
-					}
-					checkPosition++;
-				}
-				
-				if(jsonNode.getNodeType().equals(JsonNodeType.NUMBER)) {
-					Long institutionId = new Long(jsonNode.asLong());
-					OrderInfoSpecification spec = new OrderInfoSpecification(new SearchCriteria("institutionId", ":", institutionId));
-					if(checkPosition == 0) {
-						value = Specification.where(spec);
-					}else{
-						value = value.and(spec);
-					}
-					checkPosition++;
-				}
-				
-				if(jsonNode.getNodeType().equals(JsonNodeType.STRING)) {
-					Long institutionId = new Long(jsonNode.toString().replace("\"", ""));
-					OrderInfoSpecification spec = new OrderInfoSpecification(new SearchCriteria("institutionId", ":", institutionId));
-					if(checkPosition == 0) {
-						value = Specification.where(spec);
-					}else{
-						value = value.and(spec);
-					}
-					checkPosition++;
-				}
-			}
-			
-			assertTrue(!actualTree.equals(null));
-			assertNotEquals(null, value);
-			
-		} catch (IOException e) {
-			throw new GarrahanAPIException("Error parsing filter parameter from request", e);
-		}
-	}
-	
-	private Iterator<JsonNode> fetchFilterParameter(String filter) {
-		
-		 String result = filter;
-		 Iterator<JsonNode> iterator = null;
-		 
-		 try {
-			 
-			 ObjectMapper mapper = new ObjectMapper();
-			 
-			 if(filter.contains("and")) {
-				 result = result.replace("{\"and\":", "");
-				 result = result.replace("]},", "],");
-				 result = result.replace("\"{\"where", "{\"where");
-			 }
-			 
-			 if(filter.contains("or")) {
-				 result = result.replace("[{\"or\":[", "");
-				 result = result.replace("", "");
-			 }
-			 
-			 JsonNode node = mapper.readTree(result);
-			 JsonNode whereNode = node.get("where");
-			 iterator = whereNode.elements();
-			 
-		} catch (IOException e) {
-			throw new GarrahanAPIException("Error parsing filter parameter from request", e);
-		}
-		 
-		return iterator;
-	}
-	
 	public void testJsonParser() {
 		
 		JSONObject resobj;
@@ -218,9 +98,10 @@ public class ParseFilterRequest {
 		
 		ObjectMapper mapper = new ObjectMapper();
 		String institutionId = null;
+		
 		try {
 			
-			JsonNode actualTree = mapper.readTree(filter_5);
+			JsonNode actualTree = mapper.readTree(filter);
 			institutionId = actualTree.get("institutionId").toString();
 			
 		} catch (IOException e) {
@@ -228,5 +109,100 @@ public class ParseFilterRequest {
 			e.printStackTrace();
 		}
 		assertTrue(!institutionId.equals(null));
+	}
+	
+	@Test
+	public void ParserFilter_3() {
+		
+		ObjectMapper mapper = new ObjectMapper();
+		
+		try {
+			
+			JsonNode actualTree = mapper.readTree(filter_7);
+			loopThroughJson(new JSONObject(actualTree.get("where").toString()));
+			
+	    } catch (JSONException | IOException e) {
+	    	e.printStackTrace();
+	    }
+		
+		System.out.println("Specification: " + specification.toString());
+		
+		assertTrue(this.specification != null);
+		
+	}
+	
+	private void loopThroughJson(Object input) throws JSONException {
+        
+		if (input instanceof JSONObject) {
+            Iterator<?> keys = ((JSONObject) input).keys();
+            while (keys.hasNext()) {
+                String key = (String) keys.next();
+                if (!(((JSONObject) input).get(key) instanceof JSONArray))
+                	buildSpecification(key, ((JSONObject) input).get(key).toString());
+                else
+                    loopThroughJson(new JSONArray(((JSONObject) input).get(key).toString()));
+            }
+        }
+		
+        if (input instanceof JSONArray) {
+            for (int i = 0; i < ((JSONArray) input).length(); i++) {
+                JSONObject a = ((JSONArray) input).getJSONObject(i);
+                Object key = a.keys().next().toString();
+                if (!(a.opt(key.toString()) instanceof JSONArray))
+                	buildSpecification(key.toString(), a.opt(key.toString()).toString());
+                else
+                    loopThroughJson(a.opt(key.toString()));
+            }
+        }
+
+    }
+	
+	private void buildSpecification(String key, String value) {
+		
+		OrderInfoSpecification spec = null;
+		
+		if(key.equals("code")) {
+			
+			String code = value;
+			
+			code = code.replace("{\"regexp\":\".*", "");
+			code = code.replace(".*\"}", "");
+			code = "%" + code + "%";
+					
+			spec = new OrderInfoSpecification(new SearchCriteria("code", "like", code));
+			
+		} else if(key.equals("statusId")) {
+			
+			String statusId = value;
+			spec = new OrderInfoSpecification(new SearchCriteria("statusId", ":", statusId));
+		
+		} else if(key.equals("creationDate")) {
+			
+			if(value.contains("gt")) {
+				
+				spec = new OrderInfoSpecification(new SearchCriteria("creationDate", ">", value));
+				
+			}
+			
+			if(value.contains("lt")) {
+				
+				spec = new OrderInfoSpecification(new SearchCriteria("creationDate", "<", value));
+				
+			}
+			
+		} else {
+			
+			Long numberValue = new Long(value);
+			spec = new OrderInfoSpecification(new SearchCriteria(key, ":", numberValue));
+		}
+		
+		if ( specification == null) {
+			
+			specification = Specification.where(spec);
+			
+		}else {
+			
+			specification = specification.and(spec);
+		}
 	}
 }

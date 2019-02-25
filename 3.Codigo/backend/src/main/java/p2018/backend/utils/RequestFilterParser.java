@@ -1,8 +1,14 @@
 package p2018.backend.utils;
 
 import java.io.IOException;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.Iterator;
 
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -11,7 +17,6 @@ import org.springframework.stereotype.Component;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.JsonNodeType;
 
 import p2018.backend.exceptions.GarrahanAPIException;
 
@@ -24,6 +29,11 @@ import p2018.backend.exceptions.GarrahanAPIException;
 @Component
 public class RequestFilterParser {
 	
+	private Specification specification;
+	
+	/**
+	 * Class constructor
+	 */
 	public RequestFilterParser() {
 		
 	}
@@ -56,6 +66,105 @@ public class RequestFilterParser {
 		}
 		return page;
 	}
+	
+	/**
+	 * Parse the request json recursively 
+	 * @param input
+	 * @throws JSONException
+	 */
+	private void loopThroughJson(Object input) throws JSONException {
+        
+		if (input instanceof JSONObject) {
+            Iterator<?> keys = ((JSONObject) input).keys();
+            while (keys.hasNext()) {
+                String key = (String) keys.next();
+                if (!(((JSONObject) input).get(key) instanceof JSONArray))
+                	buildSpecification(key, ((JSONObject) input).get(key).toString());
+                else
+                    loopThroughJson(new JSONArray(((JSONObject) input).get(key).toString()));
+            }
+        }
+		
+        if (input instanceof JSONArray) {
+            for (int i = 0; i < ((JSONArray) input).length(); i++) {
+                JSONObject a = ((JSONArray) input).getJSONObject(i);
+                Object key = a.keys().next().toString();
+                if (!(a.opt(key.toString()) instanceof JSONArray))
+                	buildSpecification(key.toString(), a.opt(key.toString()).toString());
+                else
+                    loopThroughJson(a.opt(key.toString()));
+            }
+        }
+
+    }
+	
+	/**
+	 * Builds the all possible OrderSpecification filter to be used by JPA
+	 * @param key
+	 * @param value
+	 */
+	private void buildSpecification(String key, String value) {
+		
+		OrderInfoSpecification spec = null;
+		DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.000'Z'");
+		
+		try {
+			
+			if(key.equals("code")) {
+				
+				String code = value;
+				
+				code = code.replace("{\"regexp\":\".*", "");
+				code = code.replace(".*\"}", "");
+				code = "%" + code + "%";
+						
+				spec = new OrderInfoSpecification(new SearchCriteria("code", "like", code));
+				
+			} else if(key.equals("statusId")) {
+				
+				String statusId = value;
+				spec = new OrderInfoSpecification(new SearchCriteria("statusId", ":", statusId));
+			
+			} else if(key.equals("creationDate")) {
+				
+				if(value.contains("gt")) { 
+					String param = value.replace("{\"gt\":\"", "");
+					param = param.replace("}", "");
+					Date initDate = dateFormat.parse(param);
+					spec = new OrderInfoSpecification(new SearchCriteria("creationDate", ">", param));
+					
+				}
+				
+				if(value.contains("lt")) {
+					String param = value.replace("{\"lt\":\"", "");
+					param = param.replace("}", "");
+					Date endDate = dateFormat.parse(param);
+					spec = new OrderInfoSpecification(new SearchCriteria("creationDate", "<", param));
+					
+				}
+				
+			} else {
+				
+				Long numberValue = new Long(value);
+				spec = new OrderInfoSpecification(new SearchCriteria(key, ":", numberValue));
+			}
+			
+			if (spec != null) {
+				
+				if ( specification == null) {
+					
+					specification = Specification.where(spec);
+					
+				}else {
+					
+					specification = specification.and(spec);
+				}
+			}
+			
+		}catch (Exception e) {
+			throw new GarrahanAPIException("Error building Specification filter from request", e);
+		}
+	}
 
 	
 	/**
@@ -66,112 +175,18 @@ public class RequestFilterParser {
 	public Specification crateOrderSpecification(String filter) {
 		
 		ObjectMapper mapper = new ObjectMapper();
-		Specification value = null;
+		specification = null;
 		
 		try {
+			
 			JsonNode actualTree = mapper.readTree(filter);
-			Iterator<JsonNode> i = this.fetchFilterParameter(actualTree.toString());
-			Integer checkPosition = 0;
+			loopThroughJson(new JSONObject(actualTree.get("where").toString()));
 			
-			if(!i.toString().contains("where") && i.toString().contains("institutionId")) {
-				JsonNode jsonNode = (JsonNode) i.next();
-				Long institutionId = new Long(jsonNode.get("institutionId").asInt());
-				OrderInfoSpecification spec = new OrderInfoSpecification(new SearchCriteria("institutionId", ":", institutionId));
-				return Specification.where(spec);
-			}
-			
-			while (i.hasNext()) {
-				JsonNode jsonNode = (JsonNode) i.next();
-				
-				if(jsonNode.get("institutionId") != null) {
-					Long institutionId = new Long(jsonNode.get("institutionId").asInt());
-					OrderInfoSpecification spec = new OrderInfoSpecification(new SearchCriteria("institutionId", ":", institutionId));
-					if(checkPosition == 0) {
-						value = Specification.where(spec);
-					}else{
-						value = value.and(spec);
-					}
-					checkPosition++;
-				}
-				
-				if(jsonNode.get("statusId") != null) {
-					String statusId = jsonNode.get("statusId").toString();
-					statusId = statusId.replace("\"", "");
-					OrderInfoSpecification spec = new OrderInfoSpecification(new SearchCriteria("statusId", ":", statusId));
-					if(checkPosition == 0) {
-						value = Specification.where(spec);
-					}else{
-						value = value.and(spec);
-					}
-					checkPosition++;
-				}
-				
-				if(jsonNode.get("priorityId") != null) {
-					Long priorityId = new Long(jsonNode.get("priorityId").asInt());
-					OrderInfoSpecification spec = new OrderInfoSpecification(new SearchCriteria("priorityId", ":", priorityId));
-					if(checkPosition == 0) {
-						value = Specification.where(spec);
-					}else{
-						value = value.and(spec);
-					}
-					checkPosition++;
-				}
-				
-				if(jsonNode.get("id") != null) {
-					Long id = new Long(jsonNode.get("id").asInt());
-					OrderInfoSpecification spec = new OrderInfoSpecification(new SearchCriteria("id", ":", id));
-					if(checkPosition == 0) {
-						value = Specification.where(spec);
-					}else{
-						value = value.and(spec);
-					}
-					checkPosition++;
-				}
-				
-				if(jsonNode.get("code") != null) {
-					String code = jsonNode.get("code").toString();
-					
-					code = code.replace("{\"regexp\":\".*", "");
-					code = code.replace(".*\"}", "");
-					//code = "%" + code + "%";
-							
-					OrderInfoSpecification spec = new OrderInfoSpecification(new SearchCriteria("code", ":", code));
-					if(checkPosition == 0) {
-						value = Specification.where(spec);
-					}else{
-						value = value.and(spec);
-					}
-					checkPosition++;
-				}
-				
-				if(jsonNode.getNodeType().equals(JsonNodeType.NUMBER)) {
-					Long institutionId = new Long(jsonNode.asLong());
-					OrderInfoSpecification spec = new OrderInfoSpecification(new SearchCriteria("institutionId", ":", institutionId));
-					if(checkPosition == 0) {
-						value = Specification.where(spec);
-					}else{
-						value = value.and(spec);
-					}
-					checkPosition++;
-				}
-				
-				if(jsonNode.getNodeType().equals(JsonNodeType.STRING)) {
-					Long institutionId = new Long(jsonNode.toString().replace("\"", ""));
-					OrderInfoSpecification spec = new OrderInfoSpecification(new SearchCriteria("institutionId", ":", institutionId));
-					if(checkPosition == 0) {
-						value = Specification.where(spec);
-					}else{
-						value = value.and(spec);
-					}
-					checkPosition++;
-				}
-				
-			}
-			
-		} catch (IOException e) {
+		} catch (IOException | JSONException e) {
 			throw new GarrahanAPIException("Error parsing filter parameter from request", e);
 		}
-		return value;
+		
+		return specification;
 	}
 	
 	/**
