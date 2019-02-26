@@ -1,5 +1,7 @@
 package p2018.backend.utils;
 
+import java.util.Arrays;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -11,6 +13,9 @@ import org.springframework.security.config.annotation.web.configuration.WebSecur
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 /**
  * This configuration class defines the security applied to the routing 
@@ -22,6 +27,8 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 @Configuration
 public class WebSecurityConfiguration extends WebSecurityConfigurerAdapter {
 	
+	@Autowired
+	ConfigUtility onfigUtility;
 	
 	@Bean
 	@Override
@@ -44,25 +51,34 @@ public class WebSecurityConfiguration extends WebSecurityConfigurerAdapter {
 	
 	@Override
     protected void configure(HttpSecurity http) throws Exception {
+			
 		http.sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS).and()
 		.cors().and()
 		.csrf().disable()
-		.authorizeRequests().antMatchers(HttpMethod.POST, Constants.LOGIN_URL).permitAll()
-		.antMatchers("/api/confirm-account").permitAll()
-		.antMatchers("/api/xusers/register").permitAll()
-		.anyRequest().authenticated().and().formLogin().and()
+		.authorizeRequests().antMatchers(HttpMethod.POST, Constants.LOGIN_URL).permitAll().and()
+		.authorizeRequests().antMatchers("/api/confirm-account").permitAll().and()
+		.authorizeRequests().antMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+		.anyRequest().authenticated()
+		.and().formLogin().and()
 		.httpBasic()
 		.and()
-			.addFilter(new JWTAuthenticationFilter(authenticationManager()))
-			.addFilter(new JWTAuthorizationFilter(authenticationManager()));
+		.addFilter(new JWTAuthenticationFilter(authenticationManager()))
+		.addFilter(new JWTAuthorizationFilter(authenticationManager()));
+		
     }
 	
-	/**
-	@Bean
-	CorsConfigurationSource corsConfigurationSource() {
-	    final UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-	    source.registerCorsConfiguration("/**", new CorsConfiguration().applyPermitDefaultValues());
-	    return source;
-	 }
-	**/
-}
+	
+	
+	  @Bean 
+	  CorsConfigurationSource corsConfigurationSource() {
+	  
+		  CorsConfiguration configuration = new CorsConfiguration();
+		  configuration.setAllowedOrigins(Arrays.asList(onfigUtility.getProperty("security.cors.url")));
+		  configuration.setAllowedMethods(Arrays.asList("GET","POST","PATCH","PUT","OPTIONS")); configuration.addAllowedHeader("*");
+	  
+		  UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+		  source.registerCorsConfiguration("/**",configuration); return source; 
+	  }
+	 
+	 
+} 

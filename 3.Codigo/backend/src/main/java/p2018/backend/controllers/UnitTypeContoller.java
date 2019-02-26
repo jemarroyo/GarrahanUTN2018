@@ -4,7 +4,6 @@ import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.CrossOrigin;
-import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -18,7 +17,7 @@ import p2018.backend.repository.UnitTypeRepository;
 
 @RestController
 @RequestMapping("/api")
-@CrossOrigin(origins="http://localhost:4200", allowedHeaders="*")
+@CrossOrigin
 public class UnitTypeContoller {
 	
 	@Autowired
@@ -32,12 +31,6 @@ public class UnitTypeContoller {
 	@GetMapping("/unit-types/{id}")
 	public UnitType getUnitType(@PathVariable Long id){
 		return unitTypeRepository.getOne(id);
-	}
-	
-	@DeleteMapping("/unit-types/{id}")
-	public boolean deleteUnitType(@PathVariable Long id){
-		unitTypeRepository.deleteById(id);
-		return true;
 	}
 	
 	@PostMapping("/unit-types")

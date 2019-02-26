@@ -1,6 +1,5 @@
 package p2018.backend.utils;
 
-
 public class Constants {
 	
 	// Spring Security
@@ -14,4 +13,5 @@ public class Constants {
 	public static final String ISSUER_INFO = "";
 	public static final String SUPER_SECRET_KEY = "z1x2c3v4b5n6m7";
 	public static final long TOKEN_EXPIRATION_TIME = 864_000_000; // 10 day
+	
 }

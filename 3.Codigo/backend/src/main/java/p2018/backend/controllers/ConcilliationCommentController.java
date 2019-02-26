@@ -6,7 +6,6 @@ import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.CrossOrigin;
-import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -24,7 +23,7 @@ import p2018.backend.repository.OrderRepository;
 
 @RestController
 @RequestMapping("/api")
-@CrossOrigin(origins="http://localhost:4200", allowedHeaders="*")
+@CrossOrigin
 public class ConcilliationCommentController {
 
 	@Autowired
@@ -41,12 +40,6 @@ public class ConcilliationCommentController {
 	@GetMapping("/comments/{id}")
 	public ConciliationComment getComment(@PathVariable Long id){
 		return concilliationCommentRepository.getOne(id);
-	}
-	
-	@DeleteMapping("/comments/{id}")
-	public boolean deleteComment(@PathVariable Long id){
-		concilliationCommentRepository.deleteById(id);
-		return true;
 	}
 	
 	@PostMapping("orders/{id}/conciliationComments")

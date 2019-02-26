@@ -32,6 +32,7 @@ public class OrderInfoDTO extends AuditableEntity implements Serializable {
 	private Integer unitCount;
 	private String statusId;
 	private Date lastModified;
+	private Date completionDate;
 	
 	@OneToMany(mappedBy = "orderInfo")
 	private Set<UnitDTO> units;
@@ -106,6 +107,14 @@ public class OrderInfoDTO extends AuditableEntity implements Serializable {
 
 	public void setLastModified(Date lastModified) {
 		this.lastModified = lastModified;
+	}
+	
+	public Date getCompletionDate() {
+		return completionDate;
+	}
+
+	public void setCompletionDate(Date completionDate) {
+		this.completionDate = completionDate;
 	}
 
 	public OrderInfoDTO(String carrier, String code, Long institutionId, Long ownerId, Long priorityId,

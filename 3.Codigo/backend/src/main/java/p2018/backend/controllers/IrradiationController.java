@@ -1,12 +1,13 @@
 package p2018.backend.controllers;
 
+import java.sql.Timestamp;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.CrossOrigin;
-import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -26,7 +27,7 @@ import p2018.backend.repository.UnitRepository;
 
 @RestController
 @RequestMapping("/api")
-@CrossOrigin(origins="http://localhost:4200", allowedHeaders="*")
+@CrossOrigin
 public class IrradiationController {
 	
 	@Autowired
@@ -49,12 +50,6 @@ public class IrradiationController {
 	@GetMapping("/irradiations/{id}")
 	public Irradiation getIrradiation(@PathVariable Long id){
 		return irradiationRepository.getOne(id);
-	}
-	
-	@DeleteMapping("/irradiations/{id}")
-	public boolean deleteIrradiation(@PathVariable Long id){
-		irradiationRepository.deleteById(id);
-		return true;
 	}
 	
 	@PutMapping("/irradiations")
@@ -85,8 +80,10 @@ public class IrradiationController {
 	    Long pendingUnits = unitRepository.findPendingUnits(id, false);
 	    
 	    if(pendingUnits == 0) {
+	    	
 	    	OrderInfoDTO order = orderInfoDTORepository.getOne(id);
 	    	order.setStatusId(OrderInfoDTO.FINAL_STATUS);
+	    	order.setCompletionDate(new Timestamp((new Date()).getTime()));
 	    	orderInfoDTORepository.save(order);
 	    }
 	    

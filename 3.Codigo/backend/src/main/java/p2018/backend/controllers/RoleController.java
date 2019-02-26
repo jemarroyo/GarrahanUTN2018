@@ -3,7 +3,7 @@ package p2018.backend.controllers;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -17,7 +17,7 @@ import p2018.backend.repository.RoleRepository;
 
 @RestController
 @RequestMapping("/api")
-//@CrossOrigin(origins="http://localhost:4200", allowedHeaders="*")
+@CrossOrigin
 public class RoleController {
 	
 	@Autowired
@@ -31,12 +31,6 @@ public class RoleController {
 	@GetMapping("/role/{id}")
 	public Role getRole(@PathVariable Long id){
 		return roleRepository.getOne(id);
-	}
-	
-	@DeleteMapping("/role/{id}")
-	public boolean deleteRole(@PathVariable Long id){
-		 roleRepository.deleteById(id);
-		 return true;
 	}
 	
 	@PostMapping("/role")

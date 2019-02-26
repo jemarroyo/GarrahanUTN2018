@@ -220,14 +220,11 @@ public class User extends AuditableEntity implements Serializable {
 		this.username = username;
 		this.password = password;
 		this.emailVerified = emailVerified;
-		this.verificationToken = verificationToken;
 		this.institution = institution;
 		this.email = email;
-		this.verificationToken = UUID.randomUUID().toString();
 	}
 
 	public User() {
-		this.verificationToken = UUID.randomUUID().toString();
 		this.avatarUrl = "/assets/avatar.svg";
 	}
 

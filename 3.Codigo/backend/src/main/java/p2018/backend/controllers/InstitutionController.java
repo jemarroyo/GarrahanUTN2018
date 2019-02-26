@@ -2,11 +2,8 @@ package p2018.backend.controllers;
 
 import java.util.List;
 
-import javax.annotation.security.RolesAllowed;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.CrossOrigin;
-import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -16,7 +13,9 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import p2018.backend.entities.Institution;
+import p2018.backend.entities.InstitutionDTO;
 import p2018.backend.entities.InstitutionType;
+import p2018.backend.entities.User;
 import p2018.backend.repository.InstitutionRepository;
 import p2018.backend.repository.InstitutionTypeRepository;
 import p2018.backend.repository.OrderRepository;
@@ -24,7 +23,7 @@ import p2018.backend.repository.UserRepository;
 
 @RestController
 @RequestMapping("/api")
-@CrossOrigin(origins="http://localhost:4200", allowedHeaders="*")
+@CrossOrigin
 public class InstitutionController {
 	
 	@Autowired
@@ -46,14 +45,26 @@ public class InstitutionController {
 	
 	
 	@GetMapping("/institutions/{id}")
-	public Institution getInstitution(@PathVariable Long id){
-		return institutionRepository.getOne(id);
-	}
-	
-	@DeleteMapping("/institutions/{id}")
-	public boolean deleteInstitution(@PathVariable Long id){
-		institutionRepository.deleteById(id);
-		return true;
+	public InstitutionDTO getInstitution(@PathVariable Long id){
+		
+		Institution institution = institutionRepository.getOne(id);
+		InstitutionDTO dto = new InstitutionDTO();
+		
+		dto.setAddress(institution.getAddress());
+		dto.setCreationDate(institution.getCreationDate());
+		dto.setCuit(institution.getCuit());
+		dto.setEmail(institution.getEmail());
+		dto.setId(institution.getId());
+		dto.setInvalidCharCount(institution.getInvalidCharCount());
+		dto.setName(institution.getName());
+		dto.setOrderCount(institution.getOrderCount());
+		dto.setType(institution.getType());
+		dto.setUserCount(institution.getUserCount());
+		
+		List<User> users = userRepository.findUserListByInstitutionId(id);
+		dto.setUsers(users);
+		
+		return dto;
 	}
 	
 	@PostMapping("/institutions")

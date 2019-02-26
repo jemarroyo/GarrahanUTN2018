@@ -22,7 +22,6 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.http.ResponseEntity;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.CrossOrigin;
-import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -58,14 +57,17 @@ import p2018.backend.repository.UnitRepository;
 import p2018.backend.repository.UnitTypeMappingsRepository;
 import p2018.backend.repository.UnitTypeRepository;
 import p2018.backend.repository.UserRepository;
-import p2018.backend.utils.Constants;
+import p2018.backend.utils.ConfigUtility;
 import p2018.backend.utils.JwtTokenUtil;
 import p2018.backend.utils.RequestFilterParser;
 
 @RestController
 @RequestMapping("/api")
-@CrossOrigin(origins="http://localhost:4200", allowedHeaders="*")
+@CrossOrigin
 public class OrderController {
+	
+	@Autowired
+	ConfigUtility configUtility;
 	
 	@Autowired
 	private OrderRepository orderrepository;
@@ -131,7 +133,7 @@ public class OrderController {
 	public OrderInfo getOrder(@PathVariable Long id, @RequestHeader("Authorization") String token){
 		
 		String message = null;
-		String workingToken = token.replace(Constants.TOKEN_BEARER_PREFIX, "");
+		String workingToken = token.replace(configUtility.getProperty("security.token.bearer.prefix"), "");
 		String username = tokenUtil.getUsernameFromToken(workingToken);
 		User user;
 		
@@ -150,12 +152,6 @@ public class OrderController {
 		}
 		
 		return orderrepository.getOne(id);
-	}
-	
-	@DeleteMapping("/orders/{id}")
-	public boolean deleteOrder(@PathVariable Long id){
-		orderrepository.deleteById(id);
-		return true;
 	}
 	
 	@PostMapping("/orders")
@@ -397,7 +393,7 @@ public class OrderController {
 		
 		Map<Object, Object> model = new HashMap<>();
 		String message = null;
-		String workingToken = token.replace(Constants.TOKEN_BEARER_PREFIX, "");
+		String workingToken = token.replace(configUtility.getProperty("security.token.bearer.prefix"), "");
 		String username = tokenUtil.getUsernameFromToken(workingToken);
 		User user;
 		

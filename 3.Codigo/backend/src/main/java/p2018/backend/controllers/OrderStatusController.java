@@ -4,7 +4,6 @@ import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.CrossOrigin;
-import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -18,7 +17,7 @@ import p2018.backend.repository.OrderStatusRepository;
 
 @RestController
 @RequestMapping("/api")
-@CrossOrigin(origins="http://localhost:4200", allowedHeaders="*")
+@CrossOrigin
 public class OrderStatusController {
 
 	@Autowired
@@ -32,12 +31,6 @@ public class OrderStatusController {
 	@GetMapping("/order-status/{name}")
 	public OrderStatus getOrderStatus(@PathVariable String name){
 		return orderStatusRepository.getOne(name);
-	}
-	
-	@DeleteMapping("/order-status/{name}")
-	public boolean deleteOrderStatus(@PathVariable String name){
-		orderStatusRepository.deleteById(name);
-		return true;
 	}
 	
 	@PostMapping("/order-status")

@@ -5,46 +5,73 @@ import java.net.InetAddress;
 import java.net.SocketException;
 import java.net.UnknownHostException;
 
-import org.springframework.mail.SimpleMailMessage;
+import javax.annotation.PostConstruct;
+import javax.mail.MessagingException;
+import javax.mail.internet.MimeMessage;
 
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Configurable;
+import org.springframework.context.annotation.aspectj.EnableSpringConfigured;
+import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.mail.javamail.MimeMessageHelper;
+
+import p2018.backend.entities.User;
+
+@Configurable(preConstruction=true,dependencyCheck=true)
+@EnableSpringConfigured
 public class ActivationUserMessage {
 	
-	private SimpleMailMessage message;
-	
-	private String messageFromEmail = "arradiaciones@garrahan.com.ar";
+	private MimeMessage message;
+	private String messageFromEmail;
 	private String messageText;
-	private String messageSubject = "Activación de Usuario Garrahan";
+	private String messageSubject;
 	
-	public ActivationUserMessage(String messageTo, String confirmationToken) {
+	public ActivationUserMessage(User user, JavaMailSender sender, ConfigUtility config) {
+		
+		messageFromEmail = config.getProperty("mail.message.sender");
+		messageSubject = config.getProperty("mail.message.subject");
+		
+		String passwordReset = null;
+		String accountActivation = null; 
 		
 		try {
 			
-			this.message = new  SimpleMailMessage();
-			this.message.setFrom(messageFromEmail);
-			this.message.setTo(messageTo);
-			this.message.setSubject(messageSubject);		
+			this.message = sender.createMimeMessage();
+			
+			MimeMessageHelper helper = new MimeMessageHelper(this.message, false, "utf-8");
+			helper.setFrom(messageFromEmail);
+			helper.setTo(user.getEmail());
+			helper.setSubject(messageSubject);		
 			
 			DatagramSocket socket = new DatagramSocket();
 			socket.connect(InetAddress.getByName("8.8.8.8"), 10002);
 			String ip = socket.getLocalAddress().getHostAddress();
-			String text = "Para confirmar el registro de su cuenta, haga click en el siguiente link:" + ip + ":8080/api/confirm-account?verificationToken=" + confirmationToken;
 			
-			this.message.setText(text);
+			if(user.getAccountConfirmed()) {
+				passwordReset = "<h1>Hospital de Pediatría S.A.M.I.C. Prof. Dr. Juan P. Garrahan</h1><h3>Banco de Sangre | Centro Regional de Hemoterapia</h3><p>Estimado:" + user.getFirstname() + " " + user.getLastname() + ", su nombre de usuario es: <strong>" + user.getUsername() + "</strong></p><p>Para cambiar su contraseña haga click <a href=\""+ config.getProperty("garrahan.client.host") + "/password-change?token="+ user.getVerificationToken() +"\">aquí</a></p>";
+				this.message.setContent(passwordReset, "text/html");
+			}else {
+				accountActivation = "<h1>Hospital de Pediatría S.A.M.I.C. Prof. Dr. Juan P. Garrahan</h1><h3>Banco de Sangre | Centro Regional de Hemoterapia</h3><p>Estimado: "+ user.getFirstname() + " " + user.getLastname() +", su cuenta se ha registrado correctamente.</p><p>Para activar la misma, debe ingresar <a href=\""+ config.getProperty("garrahan.client.host") +"/confirmar-cuenta?token="+ user.getVerificationToken() +"\">aquí</a></p>";
+				this.message.setContent(accountActivation, "text/html");
+			}
 			
 		} catch (UnknownHostException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		} catch (SocketException e) {
 			e.printStackTrace();
+		} catch (MessagingException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
 		}
 		
 	}
 
-	public SimpleMailMessage getMessage() {
+	public MimeMessage getMessage() {
 		return message;
 	}
 
-	public void setMessage(SimpleMailMessage message) {
+	public void setMessage(MimeMessage message) {
 		this.message = message;
 	}
 
